@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "mark-hikari-down",
+  "productName": "MarkHikariDown",
   "version": "0.1.0",
   "identifier": "com.mark-hikari-down",
   "build": {
@@ -12,13 +12,15 @@
   "app": {
     "windows": [
       {
-        "title": "mark-hikari-down",
-        "width": 800,
-        "height": 600
+        "title": "MarkHikariDown",
+        "width": 1080,
+        "height": 760,
+        "minWidth": 820,
+        "minHeight": 580
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; img-src 'self' data: blob: asset:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost http://localhost:1420 ws://localhost:1421; script-src 'self'"
     }
   },
   "bundle": {
