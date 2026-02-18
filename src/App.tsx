@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   importMarkdownFile,
   saveMarkdownFile,
@@ -122,6 +122,7 @@ function App() {
   const pendingAnchorLineRef = useRef<number | null>(null);
   const editorSelectionRef = useRef<EditorSelection>({ start: 0, end: 0 });
   const returnToEditorRefocusRef = useRef(false);
+  const keepEditorBottomAnchoredRef = useRef(false);
 
   const renderedHtml = useMemo(
     () => renderMarkdownToSafeHtml(markdown),
@@ -205,6 +206,24 @@ function App() {
     window.addEventListener("resize", applyBottomScrollPadding);
     return () => window.removeEventListener("resize", applyBottomScrollPadding);
   }, []);
+
+  useLayoutEffect(() => {
+    if (!keepEditorBottomAnchoredRef.current) {
+      return;
+    }
+
+    const textarea = editorRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    const snapToBottom = () => {
+      textarea.scrollTop = Math.max(0, textarea.scrollHeight - textarea.clientHeight);
+    };
+
+    snapToBottom();
+    requestAnimationFrame(snapToBottom);
+  }, [markdown]);
 
   useEffect(() => {
     if (!savePulseVisible) {
@@ -327,11 +346,21 @@ function App() {
           className={`pane editor-pane ${isEditMode ? "active" : "inactive"}`}
           value={markdown}
           onChange={(event) => {
+            const textarea = event.currentTarget;
+            const lineHeight = getLineHeight(textarea);
+            const bottomGap = textarea.scrollHeight - (textarea.scrollTop + textarea.clientHeight);
+            const caretAtEnd =
+              (textarea.selectionStart ?? 0) === textarea.value.length &&
+              (textarea.selectionEnd ?? 0) === textarea.value.length;
+            keepEditorBottomAnchoredRef.current =
+              caretAtEnd && bottomGap <= lineHeight * 1.5;
+
             setMarkdown(event.currentTarget.value);
             editorSelectionRef.current = {
-              start: event.currentTarget.selectionStart ?? 0,
-              end: event.currentTarget.selectionEnd ?? 0,
+              start: textarea.selectionStart ?? 0,
+              end: textarea.selectionEnd ?? 0,
             };
+            stabilizeEditorBottomLine(textarea);
             requestAnimationFrame(() => {
               stabilizeEditorBottomLine(editorRef.current);
             });

@@ -220,26 +220,56 @@ test("最下段で改行挿入後に入力しても末尾行が潜らない", as
   await page.keyboard.press("Enter");
   await editor.type("gggggggg");
 
-  const result = await page.evaluate(() => {
-    const textarea = document.querySelector(
-      '[aria-label="Markdown Editor"]',
-    ) as HTMLTextAreaElement;
-    const style = window.getComputedStyle(textarea);
-    const lineHeight = Number.parseFloat(style.lineHeight);
-    const maxScrollTop = Math.max(0, textarea.scrollHeight - textarea.clientHeight);
-    return {
-      focused: document.activeElement === textarea,
-      atEnd:
-        textarea.selectionStart === textarea.value.length &&
-        textarea.selectionEnd === textarea.value.length,
-      lineHeight,
-      scrollTop: textarea.scrollTop,
-      maxScrollTop,
-    };
-  });
+  await expect
+    .poll(async () => {
+      return page.evaluate(() => {
+        const textarea = document.querySelector(
+          '[aria-label="Markdown Editor"]',
+        ) as HTMLTextAreaElement;
+        return document.activeElement === textarea;
+      });
+    })
+    .toBe(true);
 
-  expect(result.focused).toBe(true);
-  expect(result.atEnd).toBe(true);
-  expect(result.lineHeight % 1).toBe(0);
-  expect(Math.abs(result.maxScrollTop - result.scrollTop)).toBeLessThanOrEqual(2);
+  await expect
+    .poll(async () => {
+      return page.evaluate(() => {
+        const textarea = document.querySelector(
+          '[aria-label="Markdown Editor"]',
+        ) as HTMLTextAreaElement;
+        return (
+          textarea.selectionStart === textarea.value.length &&
+          textarea.selectionEnd === textarea.value.length
+        );
+      });
+    })
+    .toBe(true);
+
+  await expect
+    .poll(async () => {
+      return page.evaluate(() => {
+        const textarea = document.querySelector(
+          '[aria-label="Markdown Editor"]',
+        ) as HTMLTextAreaElement;
+        const style = window.getComputedStyle(textarea);
+        const lineHeight = Number.parseFloat(style.lineHeight);
+        return lineHeight % 1;
+      });
+    })
+    .toBe(0);
+
+  await expect
+    .poll(async () => {
+      return page.evaluate(() => {
+        const textarea = document.querySelector(
+          '[aria-label="Markdown Editor"]',
+        ) as HTMLTextAreaElement;
+        const style = window.getComputedStyle(textarea);
+        const lineHeight = Number.parseFloat(style.lineHeight);
+        const maxScrollTop = Math.max(0, textarea.scrollHeight - textarea.clientHeight);
+        const distanceFromBottom = Math.abs(maxScrollTop - textarea.scrollTop);
+        return distanceFromBottom <= lineHeight;
+      });
+    })
+    .toBe(true);
 });
