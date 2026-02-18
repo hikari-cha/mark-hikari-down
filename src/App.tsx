@@ -35,6 +35,18 @@ function restoreEditorToLine(
   textarea.scrollTop = Math.max(0, (targetLine - 1) * lineHeight);
 }
 
+function stabilizeEditorBottomLine(textarea: HTMLTextAreaElement | null): void {
+  if (!textarea) {
+    return;
+  }
+
+  const lineHeight = getLineHeight(textarea);
+  const bottomGap = textarea.scrollHeight - (textarea.scrollTop + textarea.clientHeight);
+  if (bottomGap <= lineHeight) {
+    textarea.scrollTop = Math.max(0, textarea.scrollHeight - textarea.clientHeight);
+  }
+}
+
 function getPreviewTopLine(preview: HTMLDivElement | null): number {
   if (!preview) {
     return 1;
@@ -179,6 +191,22 @@ function App() {
   }, [mode, renderedHtml]);
 
   useEffect(() => {
+    const textarea = editorRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    const applyBottomScrollPadding = () => {
+      const lineHeight = getLineHeight(textarea);
+      textarea.style.scrollPaddingBottom = `${Math.ceil(lineHeight * 0.8)}px`;
+    };
+
+    applyBottomScrollPadding();
+    window.addEventListener("resize", applyBottomScrollPadding);
+    return () => window.removeEventListener("resize", applyBottomScrollPadding);
+  }, []);
+
+  useEffect(() => {
     if (!savePulseVisible) {
       return;
     }
@@ -304,6 +332,9 @@ function App() {
               start: event.currentTarget.selectionStart ?? 0,
               end: event.currentTarget.selectionEnd ?? 0,
             };
+            requestAnimationFrame(() => {
+              stabilizeEditorBottomLine(editorRef.current);
+            });
           }}
           onSelect={captureEditorSelection}
           onClick={captureEditorSelection}

@@ -157,3 +157,89 @@ test("編集→プレビュー→編集で選択範囲とフォーカスを復�
     end: 17,
   });
 });
+
+test("最下行編集中に下端の可視余白を維持する", async ({ page }) => {
+  const editor = page.getByLabel("Markdown Editor");
+  const content = Array.from({ length: 180 }, (_, index) => `line-${index + 1}`).join(
+    "\n",
+  );
+  await editor.fill(content);
+
+  await page.evaluate(() => {
+    const textarea = document.querySelector(
+      '[aria-label="Markdown Editor"]',
+    ) as HTMLTextAreaElement;
+    textarea.focus();
+    const end = textarea.value.length;
+    textarea.setSelectionRange(end, end);
+    textarea.scrollTop = textarea.scrollHeight;
+  });
+
+  await editor.type("abcdefghij");
+
+  const result = await page.evaluate(() => {
+    const textarea = document.querySelector(
+      '[aria-label="Markdown Editor"]',
+    ) as HTMLTextAreaElement;
+    const style = window.getComputedStyle(textarea);
+    const lineHeight = Number.parseFloat(style.lineHeight);
+    return {
+      focused: document.activeElement === textarea,
+      atEnd:
+        textarea.selectionStart === textarea.value.length &&
+        textarea.selectionEnd === textarea.value.length,
+      paddingBottom: Number.parseFloat(style.paddingBottom),
+      scrollPaddingBottom: Number.parseFloat(style.scrollPaddingBottom),
+      lineHeight: Number.isFinite(lineHeight) ? lineHeight : 24,
+    };
+  });
+
+  expect(result.focused).toBe(true);
+  expect(result.atEnd).toBe(true);
+  expect(result.paddingBottom).toBeGreaterThan(20);
+  expect(result.scrollPaddingBottom).toBeGreaterThanOrEqual(result.lineHeight * 0.7);
+});
+
+test("最下段で改行挿入後に入力しても末尾行が潜らない", async ({ page }) => {
+  const editor = page.getByLabel("Markdown Editor");
+  const content = Array.from({ length: 200 }, (_, index) => `row-${index + 1}`).join(
+    "\n",
+  );
+  await editor.fill(content);
+
+  await page.evaluate(() => {
+    const textarea = document.querySelector(
+      '[aria-label="Markdown Editor"]',
+    ) as HTMLTextAreaElement;
+    textarea.focus();
+    const end = textarea.value.length;
+    textarea.setSelectionRange(end, end);
+    textarea.scrollTop = textarea.scrollHeight;
+  });
+
+  await page.keyboard.press("Enter");
+  await editor.type("gggggggg");
+
+  const result = await page.evaluate(() => {
+    const textarea = document.querySelector(
+      '[aria-label="Markdown Editor"]',
+    ) as HTMLTextAreaElement;
+    const style = window.getComputedStyle(textarea);
+    const lineHeight = Number.parseFloat(style.lineHeight);
+    const maxScrollTop = Math.max(0, textarea.scrollHeight - textarea.clientHeight);
+    return {
+      focused: document.activeElement === textarea,
+      atEnd:
+        textarea.selectionStart === textarea.value.length &&
+        textarea.selectionEnd === textarea.value.length,
+      lineHeight,
+      scrollTop: textarea.scrollTop,
+      maxScrollTop,
+    };
+  });
+
+  expect(result.focused).toBe(true);
+  expect(result.atEnd).toBe(true);
+  expect(result.lineHeight % 1).toBe(0);
+  expect(Math.abs(result.maxScrollTop - result.scrollTop)).toBeLessThanOrEqual(2);
+});

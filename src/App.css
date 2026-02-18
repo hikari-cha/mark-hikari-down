@@ -104,9 +104,12 @@ body,
 .editor-pane {
   font-family: inherit;
   font-size: 16px;
-  line-height: 1.8;
+  line-height: 28px;
   resize: none;
   white-space: pre-wrap;
+  padding-bottom: calc(20px + 0.9em);
+  scrollbar-gutter: stable;
+  overflow-anchor: none;
 }
 
 .preview-pane :first-child {
