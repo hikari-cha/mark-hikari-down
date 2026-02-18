@@ -32,10 +32,13 @@ Before writing any implementation code, you must ensure the documentation direct
 ### Phase 3: Implementation & Verification
 - **Read-First:** Always read `research.md` and `implementation.md` before generating code.
 - **Update-Often:** If the plan changes, update `implementation.md` first.
+- **Unit Testing:**
+    * **Add/Update:** Add or update unit tests whenever changes affect business logic, utility behavior, or component logic.
+    * **Execute:** You MUST run unit tests during verification (e.g., `npm run test` or the project's unit test command).
 - **E2E Testing (Playwright):**
     * **Add/Update:** ALWAYS add new Playwright tests if the implementation introduces new UI behavior. Fix existing tests immediately if logic changes.
     * **Execute:** You MUST run Playwright E2E tests (`npx playwright test`) after implementation to ensure stability and no regressions.
-- **Verify:** After coding, verify against `test.md` and the E2E test results.
+- **Verify:** After coding, verify against `test.md`, unit test results, and E2E test results.
 
 ## 2. Coding Standards (Text Editor Project)
 - **Immutable State:** Prefer immutable data structures.
