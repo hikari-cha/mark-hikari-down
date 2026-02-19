@@ -110,6 +110,7 @@ body,
   padding-bottom: calc(20px + 0.9em);
   scrollbar-gutter: stable;
   overflow-anchor: none;
+  overscroll-behavior: contain;
 }
 
 .preview-pane :first-child {

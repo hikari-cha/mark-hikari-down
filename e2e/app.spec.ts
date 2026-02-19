@@ -273,3 +273,71 @@ test("最下段で改行挿入後に入力しても末尾行が潜らない", as
     })
     .toBe(true);
 });
+
+test("最下段で改行なし入力中は scrollTop を固定する", async ({ page }) => {
+  const editor = page.getByLabel("Markdown Editor");
+  const content = Array.from({ length: 220 }, (_, index) => `line-${index + 1}`).join(
+    "\n",
+  );
+  await editor.fill(content);
+
+  await page.evaluate(() => {
+    const textarea = document.querySelector(
+      '[aria-label="Markdown Editor"]',
+    ) as HTMLTextAreaElement;
+    textarea.focus();
+    const end = textarea.value.length;
+    textarea.setSelectionRange(end, end);
+    textarea.scrollTop = Math.max(0, textarea.scrollHeight - textarea.clientHeight);
+  });
+
+  await page.evaluate(async () => {
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => resolve());
+      });
+    });
+    const textarea = document.querySelector(
+      '[aria-label="Markdown Editor"]',
+    ) as HTMLTextAreaElement;
+    textarea.scrollTop = Math.max(0, textarea.scrollHeight - textarea.clientHeight);
+  });
+
+  const initialScrollTop = await page.evaluate(() => {
+    const textarea = document.querySelector(
+      '[aria-label="Markdown Editor"]',
+    ) as HTMLTextAreaElement;
+    return textarea.scrollTop;
+  });
+
+  for (const key of "abcdefghij") {
+    await editor.type(key);
+    await expect
+      .poll(async () => {
+        return page.evaluate(() => {
+          const textarea = document.querySelector(
+            '[aria-label="Markdown Editor"]',
+          ) as HTMLTextAreaElement;
+          return textarea.scrollTop;
+        });
+      })
+      .toBe(initialScrollTop);
+  }
+
+  const finalState = await page.evaluate(() => {
+    const textarea = document.querySelector(
+      '[aria-label="Markdown Editor"]',
+    ) as HTMLTextAreaElement;
+    return {
+      scrollTop: textarea.scrollTop,
+      atEnd:
+        textarea.selectionStart === textarea.value.length &&
+        textarea.selectionEnd === textarea.value.length,
+      focused: document.activeElement === textarea,
+    };
+  });
+
+  expect(finalState.scrollTop).toBe(initialScrollTop);
+  expect(finalState.atEnd).toBe(true);
+  expect(finalState.focused).toBe(true);
+});
