@@ -32,12 +32,17 @@ Before writing any implementation code, you must ensure the documentation direct
 ### Phase 3: Implementation & Verification
 - **Read-First:** Always read `research.md` and `implementation.md` before generating code.
 - **Update-Often:** If the plan changes, update `implementation.md` first.
+- **UI Test-Driven Development (Playwright) - REQUIRED FOR UI CHANGES:**
+    * **Test-First:** When making UI changes or adding new UI features, you MUST write the Playwright E2E test *before* modifying any implementation code. This locks in the UI specification and expected behavior.
+    * **Red-Green-Refactor Loop:**
+        1. Write the Playwright test based on the user's requirements.
+        2. Run the test (`npx playwright test`). It MUST fail initially (Red).
+        3. Implement or update the UI code to satisfy the test.
+        4. Re-run the test. Repeat the implementation loop until the test passes (Green).
+    * **Maintenance:** Fix existing tests immediately if intended logic or UI structure changes.
 - **Unit Testing:**
     * **Add/Update:** Add or update unit tests whenever changes affect business logic, utility behavior, or component logic.
     * **Execute:** You MUST run unit tests during verification (e.g., `npm run test` or the project's unit test command).
-- **E2E Testing (Playwright):**
-    * **Add/Update:** ALWAYS add new Playwright tests if the implementation introduces new UI behavior. Fix existing tests immediately if logic changes.
-    * **Execute:** You MUST run Playwright E2E tests (`npx playwright test`) after implementation to ensure stability and no regressions.
 - **Verify:** After coding, verify against `test.md`, unit test results, and E2E test results.
 
 ## 2. Coding Standards (Text Editor Project)
