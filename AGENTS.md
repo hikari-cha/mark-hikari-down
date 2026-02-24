@@ -33,16 +33,19 @@ Before writing any implementation code, you must ensure the documentation direct
 - **Read-First:** Always read `research.md` and `implementation.md` before generating code.
 - **Update-Often:** If the plan changes, update `implementation.md` first.
 - **UI Test-Driven Development (Playwright) - REQUIRED FOR UI CHANGES:**
-    * **Test-First:** When making UI changes or adding new UI features, you MUST write the Playwright E2E test *before* modifying any implementation code. This locks in the UI specification and expected behavior.
-    * **Red-Green-Refactor Loop:**
-        1. Write the Playwright test based on the user's requirements.
-        2. Run the test (`npx playwright test`). It MUST fail initially (Red).
+    * **Test-First:** When making UI changes or adding new UI features, you MUST write the Playwright E2E test *before* modifying any implementation code. This locks in the UI specification.
+    * **Red-Green-Refactor Loop (Targeted):**
+        1. Write the Playwright test for the specific feature.
+        2. Run ONLY the targeted test. It MUST fail initially (Red).
         3. Implement or update the UI code to satisfy the test.
-        4. Re-run the test. Repeat the implementation loop until the test passes (Green).
+        4. Re-run the targeted test. Repeat until it passes (Green).
+    * **Mandatory Full Regression Test (NO EXCEPTIONS):**
+        * Once the targeted test passes, you MUST run the entire test suite (`npx playwright test` without any file filters) to ensure no existing features were broken.
+        * This is NOT optional. You cannot complete the task until the full regression suite is completely Green.
     * **Maintenance:** Fix existing tests immediately if intended logic or UI structure changes.
 - **Unit Testing:**
     * **Add/Update:** Add or update unit tests whenever changes affect business logic, utility behavior, or component logic.
-    * **Execute:** You MUST run unit tests during verification (e.g., `npm run test` or the project's unit test command).
+    * **Execute:** You MUST run unit tests during verification.
 - **Verify:** After coding, verify against `test.md`, unit test results, and E2E test results.
 
 ## 2. Coding Standards (Text Editor Project)
