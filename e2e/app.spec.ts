@@ -56,6 +56,31 @@ test("開くで内容を読み込み、状態バーを更新する", async ({ pa
   expect(mock.calls.map((c) => c.cmd)).toContain("plugin:fs|read_text_file");
 });
 
+test("新規ボタンで初期状態へ戻し未保存内容を破棄する", async ({ page }) => {
+  const actionButtons = page.locator(".actions > button");
+  await expect(actionButtons.nth(0)).toHaveText("新規");
+  await expect(actionButtons.nth(1)).toHaveText("開く");
+
+  await page.getByRole("button", { name: "開く" }).click();
+  await page.getByRole("button", { name: "プレビューモードへ" }).click();
+  await page.getByRole("button", { name: "新規" }).click();
+
+  const editor = page.getByLabel("Markdown Editor");
+  await expect(editor).toBeVisible();
+  await expect(page.getByLabel("Markdown Preview")).toBeHidden();
+  await expect(editor).toHaveValue("");
+  await expect(page.getByText("モード: 編集")).toBeVisible();
+  await expect(page.getByText("ファイル: 未保存")).toBeVisible();
+  await expect(page.getByText("新規ドキュメント")).toBeVisible();
+
+  await editor.fill("temporary draft");
+  await page.getByRole("button", { name: "新規" }).click();
+
+  await expect(editor).toHaveValue("");
+  await expect(page.getByText("ファイル: 未保存")).toBeVisible();
+  await expect(page.getByText("新規ドキュメント")).toBeVisible();
+});
+
 test("未保存ドキュメントの上書き保存は Save As フローになる", async ({ page }) => {
   const editor = page.getByLabel("Markdown Editor");
   await editor.fill("# First Draft");

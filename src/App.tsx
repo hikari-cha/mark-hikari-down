@@ -331,6 +331,21 @@ function App() {
     }
   };
 
+  const handleCreateNew = () => {
+    pendingAnchorLineRef.current = null;
+    returnToEditorRefocusRef.current = false;
+    keepEditorBottomAnchoredRef.current = false;
+    preservedEditorScrollTopRef.current = null;
+    editorSelectionRef.current = { start: 0, end: 0 };
+
+    setMarkdown(INITIAL_MARKDOWN);
+    setMode("edit");
+    setCurrentFilePath(null);
+    setStatusMessage("新規ドキュメント");
+    setSavePulseVisible(false);
+    setSaveNoticeVisible(false);
+  };
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() !== "s") {
@@ -366,6 +381,9 @@ function App() {
     <main className="app-shell">
       <header className="toolbar">
         <div className="actions">
+          <button type="button" onClick={handleCreateNew}>
+            新規
+          </button>
           <button type="button" onClick={handleImport}>
             開く
           </button>
