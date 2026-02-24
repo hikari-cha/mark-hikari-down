@@ -75,9 +75,95 @@ test("新規ボタンで初期状態へ戻し未保存内容を破棄する", as
 
   await editor.fill("temporary draft");
   await page.getByRole("button", { name: "新規" }).click();
+  await expect(page.getByRole("dialog", { name: "未保存の変更があります" })).toBeVisible();
+  await page.getByRole("button", { name: "破棄" }).click();
 
   await expect(editor).toHaveValue("");
   await expect(page.getByText("ファイル: 未保存")).toBeVisible();
+  await expect(page.getByText("新規ドキュメント")).toBeVisible();
+});
+
+test("未保存状態で新規を押して保存を選ぶと保存後に新規作成される", async ({ page }) => {
+  const editor = page.getByLabel("Markdown Editor");
+  await editor.fill("# Draft before new");
+
+  await page.getByRole("button", { name: "新規" }).click();
+  await expect(page.getByRole("dialog", { name: "未保存の変更があります" })).toBeVisible();
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+
+  await expect(page.getByText("ファイル: 未保存")).toBeVisible();
+  await expect(page.getByText("新規ドキュメント")).toBeVisible();
+  await expect(editor).toHaveValue("");
+
+  const mock = await getTauriMockState(page);
+  const saveCalls = mock.calls.filter((c) => c.cmd === "plugin:dialog|save");
+  const writeCalls = mock.calls.filter((c) => c.cmd === "plugin:fs|write_text_file");
+
+  expect(saveCalls).toHaveLength(1);
+  expect(writeCalls).toHaveLength(1);
+  expect(writeCalls[0]?.details.path).toBe("/mock/path/to/hikari_note.md");
+  expect(writeCalls[0]?.details.content).toBe("# Draft before new");
+});
+
+test("未保存状態で開くを押して破棄を選ぶと保存せず開く", async ({ page }) => {
+  const editor = page.getByLabel("Markdown Editor");
+  await editor.fill("discard this draft");
+
+  await page.getByRole("button", { name: "開く" }).click();
+  await expect(page.getByRole("dialog", { name: "未保存の変更があります" })).toBeVisible();
+  await page.getByRole("button", { name: "破棄" }).click();
+
+  await expect(editor).toHaveValue("# Hello from Mock File\n\nこれはテスト用の偽ファイルです。");
+  await expect(
+    page.getByText("読み込み完了: /mock/path/to/existing_note.md"),
+  ).toBeVisible();
+
+  const mock = await getTauriMockState(page);
+  const openCalls = mock.calls.filter((c) => c.cmd === "plugin:dialog|open");
+  const readCalls = mock.calls.filter((c) => c.cmd === "plugin:fs|read_text_file");
+  const saveCalls = mock.calls.filter((c) => c.cmd === "plugin:dialog|save");
+  const writeCalls = mock.calls.filter((c) => c.cmd === "plugin:fs|write_text_file");
+
+  expect(openCalls).toHaveLength(1);
+  expect(readCalls).toHaveLength(1);
+  expect(saveCalls).toHaveLength(0);
+  expect(writeCalls).toHaveLength(0);
+});
+
+test("未保存状態で開くを押して保存を選ぶと保存後に開く", async ({ page }) => {
+  await page.getByRole("button", { name: "開く" }).click();
+
+  const editor = page.getByLabel("Markdown Editor");
+  await editor.fill("edited existing file");
+  await page.getByRole("button", { name: "開く" }).click();
+  await expect(page.getByRole("dialog", { name: "未保存の変更があります" })).toBeVisible();
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+
+  await expect(editor).toHaveValue("edited existing file");
+  await expect(
+    page.getByText("読み込み完了: /mock/path/to/existing_note.md"),
+  ).toBeVisible();
+
+  const mock = await getTauriMockState(page);
+  const openCalls = mock.calls.filter((c) => c.cmd === "plugin:dialog|open");
+  const readCalls = mock.calls.filter((c) => c.cmd === "plugin:fs|read_text_file");
+  const saveCalls = mock.calls.filter((c) => c.cmd === "plugin:dialog|save");
+  const writeCalls = mock.calls.filter((c) => c.cmd === "plugin:fs|write_text_file");
+
+  expect(openCalls).toHaveLength(2);
+  expect(readCalls).toHaveLength(2);
+  expect(saveCalls).toHaveLength(0);
+  expect(writeCalls).toHaveLength(1);
+  expect(writeCalls[0]?.details.path).toBe("/mock/path/to/existing_note.md");
+  expect(writeCalls[0]?.details.content).toBe("edited existing file");
+});
+
+test("開いたファイルを未編集のまま新規を押しても警告しない", async ({ page }) => {
+  await page.getByRole("button", { name: "開く" }).click();
+  await page.getByRole("button", { name: "新規" }).click();
+
+  await expect(page.getByRole("dialog", { name: "未保存の変更があります" })).toHaveCount(0);
+  await expect(page.getByLabel("Markdown Editor")).toHaveValue("");
   await expect(page.getByText("新規ドキュメント")).toBeVisible();
 });
 

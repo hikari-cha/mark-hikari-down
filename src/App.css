@@ -173,6 +173,56 @@ body,
   background: #e6f3e5;
 }
 
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(17, 26, 20, 0.4);
+  z-index: 20;
+  padding: 16px;
+}
+
+.confirm-dialog {
+  width: min(420px, 100%);
+  border: 1px solid #b4c6b1;
+  border-radius: 12px;
+  background: #f6faf3;
+  box-shadow: 0 12px 32px rgba(44, 64, 50, 0.24);
+  padding: 18px;
+}
+
+.confirm-dialog h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.confirm-dialog p {
+  margin: 8px 0 0;
+}
+
+.confirm-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.confirm-actions button {
+  border: 1px solid #7a9180;
+  background: #f6faf3;
+  color: #1b221f;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.confirm-actions button:hover {
+  background: #eaf2e6;
+}
+
 @keyframes save-pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(124, 176, 122, 0.55);

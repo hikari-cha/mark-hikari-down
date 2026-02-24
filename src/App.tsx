@@ -5,9 +5,11 @@ import {
   saveMarkdownFileAs,
 } from "./fileIO";
 import { renderMarkdownToSafeHtml } from "./markdown";
+import { hasUnsavedChanges } from "./unsavedChanges";
 
 type EditorMode = "edit" | "preview";
 type EditorSelection = { start: number; end: number };
+type PendingAction = "new" | "open";
 
 const INITIAL_MARKDOWN = "";
 
@@ -112,11 +114,15 @@ function restorePreviewToLine(
 
 function App() {
   const [markdown, setMarkdown] = useState(INITIAL_MARKDOWN);
+  const [savedMarkdown, setSavedMarkdown] = useState(INITIAL_MARKDOWN);
   const [mode, setMode] = useState<EditorMode>("edit");
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState("新規ドキュメント");
   const [savePulseVisible, setSavePulseVisible] = useState(false);
   const [saveNoticeVisible, setSaveNoticeVisible] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [confirmBusy, setConfirmBusy] = useState(false);
 
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
@@ -281,13 +287,14 @@ function App() {
     requestAnimationFrame(() => setSaveNoticeVisible(true));
   };
 
-  const handleImport = async () => {
+  const executeImport = async () => {
     try {
       const file = await importMarkdownFile();
       if (!file) {
         return;
       }
       setMarkdown(file.content);
+      setSavedMarkdown(file.content);
       setCurrentFilePath(file.path);
       editorSelectionRef.current = { start: 0, end: 0 };
       setStatusMessage(`読み込み完了: ${file.path}`);
@@ -296,24 +303,28 @@ function App() {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (): Promise<boolean> => {
     try {
       if (!currentFilePath) {
         const path = await saveMarkdownFileAs(markdown, null);
         if (!path) {
-          return;
+          return false;
         }
         setCurrentFilePath(path);
+        setSavedMarkdown(markdown);
         setStatusMessage(`保存完了: ${path}`);
         showSaveFeedback({ pulse: false });
-        return;
+        return true;
       }
 
       await saveMarkdownFile(currentFilePath, markdown);
+      setSavedMarkdown(markdown);
       setStatusMessage(`上書き保存完了: ${currentFilePath}`);
       showSaveFeedback({ pulse: true });
+      return true;
     } catch (error) {
       setStatusMessage(`保存失敗: ${String(error)}`);
+      return false;
     }
   };
 
@@ -324,6 +335,7 @@ function App() {
         return;
       }
       setCurrentFilePath(path);
+      setSavedMarkdown(markdown);
       setStatusMessage(`名前を付けて保存完了: ${path}`);
       showSaveFeedback({ pulse: false });
     } catch (error) {
@@ -339,11 +351,60 @@ function App() {
     editorSelectionRef.current = { start: 0, end: 0 };
 
     setMarkdown(INITIAL_MARKDOWN);
+    setSavedMarkdown(INITIAL_MARKDOWN);
     setMode("edit");
     setCurrentFilePath(null);
     setStatusMessage("新規ドキュメント");
     setSavePulseVisible(false);
     setSaveNoticeVisible(false);
+  };
+
+  const runPendingAction = async (action: PendingAction) => {
+    if (action === "new") {
+      handleCreateNew();
+      return;
+    }
+    await executeImport();
+  };
+
+  const requestPendingAction = (action: PendingAction) => {
+    if (!hasUnsavedChanges(markdown, savedMarkdown)) {
+      void runPendingAction(action);
+      return;
+    }
+
+    setPendingAction(action);
+    setConfirmVisible(true);
+  };
+
+  const onConfirmSave = async () => {
+    if (!pendingAction || confirmBusy) {
+      return;
+    }
+
+    setConfirmBusy(true);
+    const action = pendingAction;
+    const saved = await handleSave();
+    if (!saved) {
+      setConfirmBusy(false);
+      return;
+    }
+
+    setConfirmVisible(false);
+    setPendingAction(null);
+    setConfirmBusy(false);
+    await runPendingAction(action);
+  };
+
+  const onConfirmDiscard = async () => {
+    if (!pendingAction || confirmBusy) {
+      return;
+    }
+
+    const action = pendingAction;
+    setConfirmVisible(false);
+    setPendingAction(null);
+    await runPendingAction(action);
   };
 
   useEffect(() => {
@@ -381,10 +442,10 @@ function App() {
     <main className="app-shell">
       <header className="toolbar">
         <div className="actions">
-          <button type="button" onClick={handleCreateNew}>
+          <button type="button" onClick={() => requestPendingAction("new")}>
             新規
           </button>
-          <button type="button" onClick={handleImport}>
+          <button type="button" onClick={() => requestPendingAction("open")}>
             開く
           </button>
           <button
@@ -507,6 +568,28 @@ function App() {
           保存しました
         </span>
       </footer>
+
+      {confirmVisible ? (
+        <div className="confirm-overlay">
+          <section
+            className="confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="unsaved-warning-title"
+          >
+            <h2 id="unsaved-warning-title">未保存の変更があります</h2>
+            <p>編集内容が保存されていません。保存しますか？</p>
+            <div className="confirm-actions">
+              <button type="button" onClick={() => void onConfirmSave()} disabled={confirmBusy}>
+                保存
+              </button>
+              <button type="button" onClick={() => void onConfirmDiscard()} disabled={confirmBusy}>
+                破棄
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }
