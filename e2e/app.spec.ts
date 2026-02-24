@@ -125,6 +125,53 @@ test("名前を付けて保存は currentPath を defaultPath として使う", 
   });
 });
 
+test("Ctrl+S: 未保存ドキュメントは Save As フローになる", async ({ page }) => {
+  const editor = page.getByLabel("Markdown Editor");
+  await editor.fill("# Shortcut Draft");
+  await editor.focus();
+
+  await page.keyboard.press("Control+S");
+
+  await expect(
+    page.getByText("保存完了: /mock/path/to/hikari_note.md"),
+  ).toBeVisible();
+  await expect(
+    page.getByText("ファイル: /mock/path/to/hikari_note.md"),
+  ).toBeVisible();
+
+  const mock = await getTauriMockState(page);
+  const saveCalls = mock.calls.filter((c) => c.cmd === "plugin:dialog|save");
+  const writeCalls = mock.calls.filter((c) => c.cmd === "plugin:fs|write_text_file");
+
+  expect(saveCalls).toHaveLength(1);
+  expect(writeCalls).toHaveLength(1);
+  expect(writeCalls[0]?.details.path).toBe("/mock/path/to/hikari_note.md");
+  expect(writeCalls[0]?.details.content).toBe("# Shortcut Draft");
+});
+
+test("Ctrl+S: 既存ファイルは上書き保存する", async ({ page }) => {
+  await page.getByRole("button", { name: "開く" }).click();
+
+  const editor = page.getByLabel("Markdown Editor");
+  await editor.fill("shortcut overwrite");
+  await editor.focus();
+
+  await page.keyboard.press("Control+S");
+
+  await expect(
+    page.getByText("上書き保存完了: /mock/path/to/existing_note.md"),
+  ).toBeVisible();
+
+  const mock = await getTauriMockState(page);
+  const saveCalls = mock.calls.filter((c) => c.cmd === "plugin:dialog|save");
+  const writeCalls = mock.calls.filter((c) => c.cmd === "plugin:fs|write_text_file");
+
+  expect(saveCalls).toHaveLength(0);
+  expect(writeCalls).toHaveLength(1);
+  expect(writeCalls[0]?.details.path).toBe("/mock/path/to/existing_note.md");
+  expect(writeCalls[0]?.details.content).toBe("shortcut overwrite");
+});
+
 test("編集→プレビュー→編集で選択範囲とフォーカスを復元する", async ({ page }) => {
   const editor = page.getByLabel("Markdown Editor");
   await editor.fill("line-1\nline-2\nline-3\nline-4");

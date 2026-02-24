@@ -331,6 +331,23 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== "s") {
+        return;
+      }
+      if ((!event.ctrlKey && !event.metaKey) || event.altKey) {
+        return;
+      }
+
+      event.preventDefault();
+      void handleSave();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleSave]);
+
   const currentFileLabel = currentFilePath ?? "未保存";
   const isEditMode = mode === "edit";
   const isPreviewMode = mode === "preview";
