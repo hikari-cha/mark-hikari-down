@@ -283,6 +283,21 @@ test("Ctrl+S: 既存ファイルは上書き保存する", async ({ page }) => {
   expect(writeCalls[0]?.details.content).toBe("shortcut overwrite");
 });
 
+test("Ctrl+E: 編集/プレビューをトグル切り替えする", async ({ page }) => {
+  const editor = page.getByLabel("Markdown Editor");
+  await editor.focus();
+
+  await expect(page.getByRole("button", { name: "プレビューモードへ" })).toBeVisible();
+
+  await page.keyboard.press("Control+E");
+  await expect(page.getByRole("button", { name: "編集モードへ" })).toBeVisible();
+  await expect(page.getByText("モード: プレビュー")).toBeVisible();
+
+  await page.keyboard.press("Control+E");
+  await expect(page.getByRole("button", { name: "プレビューモードへ" })).toBeVisible();
+  await expect(page.getByText("モード: 編集")).toBeVisible();
+});
+
 test("編集→プレビュー→編集で選択範囲とフォーカスを復元する", async ({ page }) => {
   const editor = page.getByLabel("Markdown Editor");
   await editor.fill("line-1\nline-2\nline-3\nline-4");

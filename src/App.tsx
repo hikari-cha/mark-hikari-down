@@ -409,20 +409,26 @@ function App() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() !== "s") {
-        return;
-      }
       if ((!event.ctrlKey && !event.metaKey) || event.altKey) {
         return;
       }
+      const key = event.key.toLowerCase();
 
-      event.preventDefault();
-      void handleSave();
+      if (key === "s") {
+        event.preventDefault();
+        void handleSave();
+        return;
+      }
+
+      if (key === "e") {
+        event.preventDefault();
+        toggleMode();
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleSave]);
+  }, [handleSave, toggleMode]);
 
   const currentFileLabel = currentFilePath ?? "未保存";
   const isEditMode = mode === "edit";
