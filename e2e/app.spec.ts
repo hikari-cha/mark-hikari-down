@@ -499,3 +499,54 @@ test("最下段で改行なし入力中は scrollTop を固定する", async ({ 
   expect(finalState.atEnd).toBe(true);
   expect(finalState.focused).toBe(true);
 });
+
+test("スクロール可能な文書の途中で改行しても最下部へジャンプしない", async ({ page }) => {
+  const editor = page.getByLabel("Markdown Editor");
+  const content = Array.from({ length: 320 }, (_, index) => `middle-row-${index + 1}`).join(
+    "\n",
+  );
+  await editor.fill(content);
+
+  const initialState = await page.evaluate(() => {
+    const textarea = document.querySelector(
+      '[aria-label="Markdown Editor"]',
+    ) as HTMLTextAreaElement;
+    const style = window.getComputedStyle(textarea);
+    const lineHeight = Number.parseFloat(style.lineHeight) || 24;
+    const targetLine = 150;
+
+    const lines = textarea.value.split("\n");
+    const caretIndex = lines
+      .slice(0, targetLine - 1)
+      .reduce((sum, line) => sum + line.length + 1, 0);
+
+    textarea.focus();
+    textarea.setSelectionRange(caretIndex, caretIndex);
+    textarea.scrollTop = Math.max(0, lineHeight * 120);
+
+    return {
+      scrollTop: textarea.scrollTop,
+      lineHeight,
+    };
+  });
+
+  await page.keyboard.press("Enter");
+
+  const result = await page.evaluate(() => {
+    const textarea = document.querySelector(
+      '[aria-label="Markdown Editor"]',
+    ) as HTMLTextAreaElement;
+
+    const maxScrollTop = Math.max(0, textarea.scrollHeight - textarea.clientHeight);
+    return {
+      scrollTop: textarea.scrollTop,
+      maxScrollTop,
+    };
+  });
+
+  const drift = Math.abs(result.scrollTop - initialState.scrollTop);
+  const distanceFromBottom = result.maxScrollTop - result.scrollTop;
+
+  expect(drift).toBeLessThanOrEqual(initialState.lineHeight * 20);
+  expect(distanceFromBottom).toBeGreaterThan(initialState.lineHeight * 40);
+});

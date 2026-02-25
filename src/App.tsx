@@ -532,7 +532,7 @@ function App() {
               }
             }
 
-            if (lineBreakInput) {
+            if (lineBreakInput && shouldAnchor) {
               stabilizeEditorBottomLine(textarea);
               requestAnimationFrame(() => {
                 stabilizeEditorBottomLine(editorRef.current);
