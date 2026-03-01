@@ -549,6 +549,35 @@ test("最下段で改行なし入力中は scrollTop を固定する", async ({ 
   expect(finalState.focused).toBe(true);
 });
 
+test("ステータスバーに文字数がリアルタイム表示される", async ({ page }) => {
+  // 初期状態は 0文字
+  await expect(page.locator(".char-count")).toHaveText("0文字");
+
+  // 日本語入力で文字数が更新される
+  const editor = page.getByLabel("Markdown Editor");
+  await editor.fill("こんにちは");
+  await expect(page.locator(".char-count")).toHaveText("5文字");
+
+  // ASCII 文字も正しくカウントされる
+  await editor.fill("Hello");
+  await expect(page.locator(".char-count")).toHaveText("5文字");
+
+  // 1000文字以上でカンマ区切り表示
+  const longText = "あ".repeat(1000);
+  await editor.fill(longText);
+  await expect(page.locator(".char-count")).toHaveText("1,000文字");
+});
+
+test("文字数は新規作成後に0にリセットされる", async ({ page }) => {
+  const editor = page.getByLabel("Markdown Editor");
+  await editor.fill("テスト内容");
+  await expect(page.locator(".char-count")).toHaveText("5文字");
+
+  await page.getByRole("button", { name: "新規" }).click();
+  await page.getByRole("button", { name: "破棄" }).click();
+  await expect(page.locator(".char-count")).toHaveText("0文字");
+});
+
 test("スクロール可能な文書の途中で改行しても最下部へジャンプしない", async ({ page }) => {
   const editor = page.getByLabel("Markdown Editor");
   const content = Array.from({ length: 320 }, (_, index) => `middle-row-${index + 1}`).join(

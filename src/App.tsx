@@ -438,6 +438,8 @@ function App() {
   const currentFileLabel = currentFilePath ?? "未保存";
   const isEditMode = mode === "edit";
   const isPreviewMode = mode === "preview";
+  const charCount = [...markdown].length;
+  const charCountLabel = charCount.toLocaleString("ja-JP") + "文字";
 
   const onPaneScroll = (targetMode: EditorMode) => {
     if (targetMode !== mode) {
@@ -578,6 +580,7 @@ function App() {
         >
           保存しました
         </span>
+        <span className="char-count">{charCountLabel}</span>
       </footer>
 
       {confirmVisible ? (
