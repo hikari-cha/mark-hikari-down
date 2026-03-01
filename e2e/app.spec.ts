@@ -158,6 +158,40 @@ test("未保存状態で開くを押して保存を選ぶと保存後に開く",
   expect(writeCalls[0]?.details.content).toBe("edited existing file");
 });
 
+test("未保存状態で新規を押してキャンセルを選ぶとダイアログが閉じ何も変わらない", async ({ page }) => {
+  const editor = page.getByLabel("Markdown Editor");
+  await editor.fill("cancel this draft");
+
+  await page.getByRole("button", { name: "新規" }).click();
+  await expect(page.getByRole("dialog", { name: "未保存の変更があります" })).toBeVisible();
+  await page.getByRole("button", { name: "キャンセル" }).click();
+
+  await expect(page.getByRole("dialog", { name: "未保存の変更があります" })).toHaveCount(0);
+  await expect(editor).toHaveValue("cancel this draft");
+  await expect(page.getByText("ファイル: 未保存")).toBeVisible();
+
+  const mock = await getTauriMockState(page);
+  expect(mock.calls.map((c) => c.cmd)).not.toContain("plugin:dialog|save");
+  expect(mock.calls.map((c) => c.cmd)).not.toContain("plugin:fs|write_text_file");
+});
+
+test("未保存状態で開くを押してキャンセルを選ぶとダイアログが閉じ何も変わらない", async ({ page }) => {
+  const editor = page.getByLabel("Markdown Editor");
+  await editor.fill("cancel open draft");
+
+  await page.getByRole("button", { name: "開く" }).click();
+  await expect(page.getByRole("dialog", { name: "未保存の変更があります" })).toBeVisible();
+  await page.getByRole("button", { name: "キャンセル" }).click();
+
+  await expect(page.getByRole("dialog", { name: "未保存の変更があります" })).toHaveCount(0);
+  await expect(editor).toHaveValue("cancel open draft");
+  await expect(page.getByText("ファイル: 未保存")).toBeVisible();
+
+  const mock = await getTauriMockState(page);
+  expect(mock.calls.map((c) => c.cmd)).not.toContain("plugin:dialog|open");
+  expect(mock.calls.map((c) => c.cmd)).not.toContain("plugin:fs|read_text_file");
+});
+
 test("開いたファイルを未編集のまま新規を押しても警告しない", async ({ page }) => {
   await page.getByRole("button", { name: "開く" }).click();
   await page.getByRole("button", { name: "新規" }).click();

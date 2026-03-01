@@ -407,6 +407,11 @@ function App() {
     await runPendingAction(action);
   };
 
+  const onConfirmCancel = () => {
+    setConfirmVisible(false);
+    setPendingAction(null);
+  };
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((!event.ctrlKey && !event.metaKey) || event.altKey) {
@@ -591,6 +596,9 @@ function App() {
               </button>
               <button type="button" onClick={() => void onConfirmDiscard()} disabled={confirmBusy}>
                 破棄
+              </button>
+              <button type="button" onClick={onConfirmCancel} disabled={confirmBusy}>
+                キャンセル
               </button>
             </div>
           </section>
