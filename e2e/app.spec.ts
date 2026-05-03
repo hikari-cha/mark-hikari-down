@@ -549,6 +549,34 @@ test("最下段で改行なし入力中は scrollTop を固定する", async ({ 
   expect(finalState.focused).toBe(true);
 });
 
+test("起動時にファイルパスが渡された場合、自動的にファイルを読み込む", async ({ page }) => {
+  const initialFilePath = "/mock/path/to/startup_file.md";
+  const initialContent = "# 起動時に読み込まれたファイル\n\n自動読み込みのテスト。";
+
+  await mockTauriPlugin(page, {
+    initialFilePath,
+    files: { [initialFilePath]: initialContent },
+  });
+  await page.goto("/");
+
+  await expect(page.getByLabel("Markdown Editor")).toHaveValue(initialContent);
+  await expect(page.getByText(`ファイル: ${initialFilePath}`)).toBeVisible();
+  await expect(page.getByText(`読み込み完了: ${initialFilePath}`)).toBeVisible();
+
+  const mock = await getTauriMockState(page);
+  expect(mock.calls.map((c) => c.cmd)).toContain("open_initial_file");
+  expect(mock.calls.map((c) => c.cmd)).not.toContain("plugin:fs|read_text_file");
+});
+
+test("起動時にファイルパスが渡されない場合、初期状態のまま", async ({ page }) => {
+  await expect(page.getByLabel("Markdown Editor")).toHaveValue("");
+  await expect(page.getByText("ファイル: 未保存")).toBeVisible();
+  await expect(page.getByText("新規ドキュメント")).toBeVisible();
+
+  const mock = await getTauriMockState(page);
+  expect(mock.calls.map((c) => c.cmd)).toContain("open_initial_file");
+});
+
 test("ステータスバーに文字数がリアルタイム表示される", async ({ page }) => {
   // 初期状態は 0文字
   await expect(page.locator(".char-count")).toHaveText("0文字");

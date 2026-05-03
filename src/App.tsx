@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   importMarkdownFile,
@@ -302,6 +303,26 @@ function App() {
       setStatusMessage(`読み込み失敗: ${String(error)}`);
     }
   };
+
+  useEffect(() => {
+    const loadInitialFile = async () => {
+      try {
+        const file = await invoke<{ path: string; content: string } | null>(
+          "open_initial_file",
+        );
+        if (!file) {
+          return;
+        }
+        setMarkdown(file.content);
+        setSavedMarkdown(file.content);
+        setCurrentFilePath(file.path);
+        setStatusMessage(`読み込み完了: ${file.path}`);
+      } catch {
+        // 起動時の引数なし / 非Tauri環境では無視
+      }
+    };
+    void loadInitialFile();
+  }, []);
 
   const handleSave = async (): Promise<boolean> => {
     try {

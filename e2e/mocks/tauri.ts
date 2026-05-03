@@ -4,6 +4,7 @@ type TauriMockConfig = {
   openPath?: string | null;
   savePath?: string | null;
   files?: Record<string, string>;
+  initialFilePath?: string | null;
 };
 
 type TauriCall = {
@@ -30,6 +31,7 @@ export async function mockTauriPlugin(
     openPath: config.openPath ?? DEFAULT_OPEN_PATH,
     savePath: config.savePath ?? DEFAULT_SAVE_PATH,
     files: { ...DEFAULT_FILES, ...(config.files ?? {}) },
+    initialFilePath: config.initialFilePath ?? null,
   };
 
   await page.addInitScript((initialConfig: typeof normalized) => {
@@ -51,6 +53,13 @@ export async function mockTauriPlugin(
       args?: Record<string, unknown>,
       options?: Record<string, unknown>,
     ) => {
+      if (cmd === "open_initial_file") {
+        state.calls.push({ cmd, details: {} });
+        if (!initialConfig.initialFilePath) return null;
+        const content = initialConfig.files[initialConfig.initialFilePath] ?? "";
+        return { path: initialConfig.initialFilePath, content };
+      }
+
       if (cmd === "plugin:dialog|open") {
         const dialogOptions = (args?.options as Record<string, unknown>) ?? {};
         state.calls.push({ cmd, details: { options: dialogOptions } });
